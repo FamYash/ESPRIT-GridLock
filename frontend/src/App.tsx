@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "r
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Navbar from "./components/common/Navbar";
 import Sidebar from "./components/common/Sidebar";
-import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import MapView from "./pages/MapView";
 import Analytics from "./pages/Analytics";
@@ -33,7 +32,7 @@ const ProtectedLayout: React.FC<{ children: (wsViolations: Violation[]) => React
 
   // Open WebSocket connection for real-time violations updates
   useEffect(() => {
-    if (!isAuthenticated || !token) return;
+    if (!token) return;
 
     // Use WS protocol based on window location
     const wsUrl = "ws://localhost:8000/api/v1/violations/ws";
@@ -79,8 +78,10 @@ const ProtectedLayout: React.FC<{ children: (wsViolations: Violation[]) => React
     );
   }
 
+  console.log("Auth Status:", isAuthenticated);
+
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return null;
   }
 
   return (
@@ -99,7 +100,6 @@ const ProtectedLayout: React.FC<{ children: (wsViolations: Violation[]) => React
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
       <Route 
         path="/" 
         element={
