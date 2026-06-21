@@ -49,8 +49,7 @@ async def websocket_endpoint(websocket: WebSocket):
 def read_violations(
     status: Optional[str] = None,
     zone_id: Optional[UUID] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ) -> Any:
     return get_violations(db, status=status, zone_id=zone_id)
 

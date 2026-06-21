@@ -13,7 +13,7 @@ router = APIRouter()
 
 # Zones Endpoints
 @router.get("", response_model=List[ZoneResponse])
-def read_zones(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> Any:
+def read_zones(db: Session = Depends(get_db)) -> Any:
     return get_zones(db)
 
 @router.post("", response_model=ZoneResponse, status_code=status.HTTP_201_CREATED)
@@ -23,7 +23,7 @@ def add_zone(zone_in: ZoneCreate, db: Session = Depends(get_db), current_user: U
     return create_zone(db, zone_in=zone_in)
 
 @router.get("/{zone_id}", response_model=ZoneResponse)
-def read_zone_by_id(zone_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> Any:
+def read_zone_by_id(zone_id: UUID, db: Session = Depends(get_db)) -> Any:
     zone = get_zone(db, zone_id=zone_id)
     if not zone:
         raise HTTPException(status_code=404, detail="Zone not found")
@@ -41,7 +41,7 @@ def modify_zone(zone_id: UUID, zone_in: ZoneUpdate, db: Session = Depends(get_db
 
 # Cameras Endpoints
 @router.get("/cameras/all", response_model=List[CameraResponse])
-def read_cameras(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> Any:
+def read_cameras(db: Session = Depends(get_db)) -> Any:
     return get_cameras(db)
 
 @router.post("/cameras/add", response_model=CameraResponse, status_code=status.HTTP_201_CREATED)

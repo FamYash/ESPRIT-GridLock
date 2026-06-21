@@ -15,9 +15,7 @@ router = APIRouter()
 def read_enforcement_actions(
     status: Optional[str] = None,
     officer_id: Optional[UUID] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-) -> Any:
+    db: Session = Depends(get_db)) -> Any:
     return get_enforcement_actions(db, status=status, officer_id=officer_id)
 
 @router.post("", response_model=EnforcementActionResponse, status_code=status.HTTP_201_CREATED)

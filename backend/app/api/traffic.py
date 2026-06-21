@@ -27,6 +27,5 @@ def add_traffic_metric(metric_in: TrafficMetricCreate, db: Session = Depends(get
 @router.get("/congestion-stats", response_model=List[CongestionStats])
 def read_congestion_stats(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ) -> Any:
     return get_congestion_statistics(db)

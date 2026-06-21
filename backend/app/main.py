@@ -1,8 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api import auth, zones, violations, traffic, enforcement
 from app.api.test import router as test_router
+from app.core.database import Base, engine
+import app.api.auth as auth
+import app.api.zones as zones
+import app.api.violations as violations
+import app.api.traffic as traffic
+import app.api.enforcement as enforcement
+from app.models.user import User
+from app.models.zone import Zone, Camera
+from app.models.violation import Violation
+from app.models.traffic import TrafficMetric
+from app.models.enforcement import EnforcementAction
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
