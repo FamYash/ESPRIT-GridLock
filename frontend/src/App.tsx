@@ -73,8 +73,8 @@ const ProtectedLayout: React.FC<{ children: (wsViolations: Violation[]) => React
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#0b0f19]">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex h-screen items-center justify-center bg-[#f8fafc]">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -84,7 +84,7 @@ const ProtectedLayout: React.FC<{ children: (wsViolations: Violation[]) => React
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-[#f3f4f6]">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900">
       <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} wsConnected={wsConnected} />
       <div className="flex pt-16">
         <Sidebar isOpen={sidebarOpen} />
