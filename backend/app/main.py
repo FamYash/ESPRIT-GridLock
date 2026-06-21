@@ -27,6 +27,12 @@ app.include_router(violations.router, prefix=f"{settings.API_V1_STR}/violations"
 app.include_router(traffic.router, prefix=f"{settings.API_V1_STR}/traffic", tags=["traffic"])
 app.include_router(enforcement.router, prefix=f"{settings.API_V1_STR}/enforcement", tags=["enforcement"])
 
+@app.on_event("startup")
+async def startup_event():
+    import asyncio
+    from app.api.violations import violation_simulator_loop
+    asyncio.create_task(violation_simulator_loop())
+
 @app.get("/")
 def read_root():
     return {
@@ -37,4 +43,5 @@ def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+
