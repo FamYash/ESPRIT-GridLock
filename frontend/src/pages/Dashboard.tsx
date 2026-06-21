@@ -34,22 +34,39 @@ interface CongestionStat {
   priority_score: number;
 }
 
+interface DashboardStats {
+  active_violations: number;
+  critical_zones: number;
+  avg_congestion: number;
+  avg_speed: number;
+}
+
 interface DashboardProps {
   wsViolations: Violation[];
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ wsViolations }) => {
   const [violations, setViolations] = useState<Violation[]>([]);
-  const [congestionStats, setCongestionStats] = useState<CongestionStat[]>([]);
-  const [loading, setLoading] = useState(true);
+const [congestionStats, setCongestionStats] = useState<CongestionStat[]>([]);
+const [loading, setLoading] = useState(true);
+
+const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
+  active_violations: 0,
+  critical_zones: 0,
+  avg_congestion: 0,
+  avg_speed: 0,
+});
 
   const fetchDashboardData = async () => {
     try {
-      const violationsRes = await api.get("/violations?status=active");
-      setViolations(violationsRes.data);
+      const dashboardRes = await api.get("/dashboard/stats");
+setDashboardStats(dashboardRes.data);
 
-      const statsRes = await api.get("/traffic/congestion-stats");
-      setCongestionStats(statsRes.data);
+const violationsRes = await api.get("/violations");
+setViolations(violationsRes.data);
+
+const statsRes = await api.get("/traffic/congestion-stats");
+setCongestionStats(statsRes.data);
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
     } finally {
@@ -59,6 +76,12 @@ const Dashboard: React.FC<DashboardProps> = ({ wsViolations }) => {
 
   useEffect(() => {
     fetchDashboardData();
+
+    const interval = setInterval(() => {
+      fetchDashboardData();
+    }, 15000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Merge WebSocket real-time events with base violations
@@ -88,14 +111,13 @@ const Dashboard: React.FC<DashboardProps> = ({ wsViolations }) => {
   }, [wsViolations]);
 
   // Recalculate KPIs
-  const activeCount = violations.length;
-  const averageCongestion = congestionStats.length > 0
-    ? (congestionStats.reduce((sum, item) => sum + item.current_congestion_index, 0) / congestionStats.length) * 100
-    : 0;
-  const criticalZonesCount = congestionStats.filter(item => item.current_congestion_index > 0.75).length;
-  const avgSpeed = congestionStats.length > 0
-    ? congestionStats.reduce((sum, item) => sum + item.average_speed_kmh, 0) / congestionStats.length
-    : 40;
+const activeCount = dashboardStats.active_violations;
+
+const averageCongestion = dashboardStats.avg_congestion;
+
+const criticalZonesCount = dashboardStats.critical_zones;
+
+const avgSpeed = dashboardStats.avg_speed;
 
   if (loading) {
     return (
@@ -186,7 +208,10 @@ const Dashboard: React.FC<DashboardProps> = ({ wsViolations }) => {
                 >
                   <div className="flex gap-4 items-center">
                     <img 
-                      src={violation.image_url} 
+                      src={
+                        violation.image_url ||
+                        "https://via.placeholder.com/150?text=Violation"
+                      } 
                       alt="violation proof" 
                       className="w-16 h-12 object-cover rounded-lg border border-slate-800" 
                     />

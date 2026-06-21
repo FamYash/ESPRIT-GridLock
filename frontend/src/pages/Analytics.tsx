@@ -99,7 +99,7 @@ const Analytics: React.FC = () => {
           </div>
           
           <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="99%" height={280}>
               <BarChart data={correlationData} margin={{ top: 20, right: 10, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                 <XAxis dataKey="name" stroke="#64748b" style={{ fontSize: 11 }} />
@@ -122,7 +122,7 @@ const Analytics: React.FC = () => {
           </div>
 
           <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="99%" height={280}>
               <AreaChart data={hourlyData} margin={{ top: 20, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorSpeed" x1="0" y1="0" x2="0" y2="1">
