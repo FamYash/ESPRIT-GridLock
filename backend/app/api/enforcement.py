@@ -18,8 +18,27 @@ def read_enforcement_actions(
     db: Session = Depends(get_db)) -> Any:
     return get_enforcement_actions(db, status=status, officer_id=officer_id)
 
+@router.get("/actions", response_model=List[EnforcementActionResponse])
+def read_enforcement_actions_alias(
+    status: Optional[str] = None,
+    officer_id: Optional[UUID] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> Any:
+    return get_enforcement_actions(db, status=status, officer_id=officer_id)
+
 @router.post("", response_model=EnforcementActionResponse, status_code=status.HTTP_201_CREATED)
 def dispatch_officer(
+    action_in: EnforcementActionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> Any:
+    if current_user.role not in ["admin", "operator"]:
+        raise HTTPException(status_code=403, detail="Not authorized to dispatch officers")
+    return create_enforcement_action(db, action_in=action_in)
+
+@router.post("/dispatch", response_model=EnforcementActionResponse, status_code=status.HTTP_201_CREATED)
+def dispatch_officer_alias(
     action_in: EnforcementActionCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)

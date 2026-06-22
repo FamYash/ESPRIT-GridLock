@@ -4,7 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import Base, engine
 
-# Routers
 from app.api.test import router as test_router
 import app.api.auth as auth
 import app.api.zones as zones
@@ -12,6 +11,7 @@ import app.api.violations as violations
 import app.api.traffic as traffic
 import app.api.enforcement as enforcement
 import app.api.dashboard as dashboard
+import app.api.config as config
 
 # Models
 from app.models.user import User
@@ -40,7 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API Routes
+# Include API Routers
 app.include_router(
     auth.router,
     prefix=f"{settings.API_V1_STR}/auth",
@@ -71,11 +71,16 @@ app.include_router(
     tags=["enforcement"]
 )
 
-# Dashboard Route
 app.include_router(
     dashboard.router,
     prefix=f"{settings.API_V1_STR}/dashboard",
     tags=["dashboard"]
+)
+
+app.include_router(
+    config.router,
+    prefix=f"{settings.API_V1_STR}/config",
+    tags=["config"]
 )
 
 # Root Endpoint
