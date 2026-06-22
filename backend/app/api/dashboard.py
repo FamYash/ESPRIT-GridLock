@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.models.violation import Violation
 from app.models.zone import Zone
 from app.models.traffic import TrafficMetric
+from datetime import timedelta
 
 router = APIRouter()
 
@@ -13,9 +14,16 @@ router = APIRouter()
 @router.get("/stats")
 def get_dashboard_stats(db: Session = Depends(get_db)):
 
+    latest_date = db.query(
+        func.max(Violation.detection_start)
+    ).scalar()
+
     active_violations = (
         db.query(Violation)
-        .filter(Violation.status.in_(["active", "detected"]))
+        .filter(
+            Violation.status.in_(["active", "detected"]),
+            Violation.detection_start >= latest_date - timedelta(days=30)
+        )
         .count()
     )
 

@@ -1,0 +1,6 @@
+{
+    "risk_threshold": 5.0,
+    "alert_radius": 500,
+    "priority_enforcement": true,
+    "congestion_alert_level": "medium"
+}

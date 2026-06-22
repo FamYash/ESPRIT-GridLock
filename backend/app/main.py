@@ -12,6 +12,7 @@ import app.api.traffic as traffic
 import app.api.enforcement as enforcement
 import app.api.dashboard as dashboard
 import app.api.config as config
+import app.api.heatmap as heatmap
 
 # Models
 from app.models.user import User
@@ -69,6 +70,12 @@ app.include_router(
     enforcement.router,
     prefix=f"{settings.API_V1_STR}/enforcement",
     tags=["enforcement"]
+)
+
+app.include_router(
+    heatmap.router,
+    prefix=f"{settings.API_V1_STR}/heatmap",
+    tags=["heatmap"]
 )
 
 app.include_router(

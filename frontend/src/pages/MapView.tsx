@@ -8,6 +8,7 @@ import "leaflet/dist/leaflet.css";
 // Fix Leaflet Default Icon issue
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
+import HeatmapLayer from "../components/common/HeatmapLayer";
 
 let DefaultIcon = new Icon({
   iconUrl: icon,
@@ -52,10 +53,13 @@ interface MapViewProps {
 const MapView: React.FC<MapViewProps> = ({ wsViolations }) => {
   const [zones, setZones] = useState<Zone[]>([]);
   const [violations, setViolations] = useState<Violation[]>([]);
+  const [heatmapPoints, setHeatmapPoints] = useState<
+  [number, number, number][]
+>([]);
+const [topHotspots, setTopHotspots] = useState<any[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [selectedVideoName, setSelectedVideoName] = useState<string>("");
   const [loading, setLoading] = useState(true);
-
   const loadMapData = async () => {
     try {
       const zonesRes = await api.get("/zones");
@@ -63,6 +67,27 @@ const MapView: React.FC<MapViewProps> = ({ wsViolations }) => {
 
       const violationsRes = await api.get("/violations?status=active");
       setViolations(violationsRes.data);
+
+      const heatmapRes = await api.get(
+        "/heatmap/historical"
+      );
+
+      const formattedPoints = heatmapRes.data.map((p:any) => [
+        p.lat,
+        p.lng,
+        p.weight
+      ]);
+
+      console.log("Heatmap Points:", formattedPoints.slice(0,10));
+
+      setHeatmapPoints(formattedPoints);
+
+      setTopHotspots(
+        heatmapRes.data
+          .sort((a:any,b:any)=>b.weight-a.weight)
+          .slice(0,5)
+      );
+
     } catch (e) {
       console.error("Error loading map data:", e);
     } finally {
@@ -98,7 +123,7 @@ const MapView: React.FC<MapViewProps> = ({ wsViolations }) => {
   }, [wsViolations]);
 
   // Center coordinate of Delhi Connaught Place
-  const centerCoords: [number, number] = [28.6285, 77.2185];
+  const centerCoords: [number, number] = [12.9808, 77.6005];
 
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -138,16 +163,41 @@ const MapView: React.FC<MapViewProps> = ({ wsViolations }) => {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
+            {heatmapPoints.length > 0 && (
+              <HeatmapLayer
+                points={heatmapPoints}
+              />
+            )}
+
+            {topHotspots.slice(0, 5).map((spot, index) => (
+              <Marker
+                key={index}
+                position={[spot.lat, spot.lng]}
+              >
+                <Popup>
+                  <div>
+                    <h3 className="font-bold">
+                      {spot.name}
+                    </h3>
+
+                    <p>
+                      Violations: {spot.weight}
+                    </p>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+
             {/* Render Geofenced Risk Zones */}
-            {zones.map((zone) => (
+            {/* {zones.map((zone) => (
               <Polygon
                 key={zone.id}
                 positions={zone.boundary as [number, number][]}
                 pathOptions={{
                   color: getRiskColor(zone.risk_level),
                   fillColor: getRiskColor(zone.risk_level),
-                  fillOpacity: 0.15,
-                  weight: 2,
+                  fillOpacity: 0.03,
+                  weight: 1,
                 }}
               >
                 <Popup>
@@ -158,10 +208,10 @@ const MapView: React.FC<MapViewProps> = ({ wsViolations }) => {
                   </div>
                 </Popup>
               </Polygon>
-            ))}
+            ))} */}
 
             {/* Render Cameras */}
-            {zones.flatMap(z => z.cameras).map((camera) => (
+            {false && zones.flatMap(z => z.cameras).map((camera) => (
               <Marker
                 key={camera.id}
                 position={[camera.latitude, camera.longitude]}
@@ -189,38 +239,6 @@ const MapView: React.FC<MapViewProps> = ({ wsViolations }) => {
                 </Popup>
               </Marker>
             ))}
-
-            {/* Render Active Violations (Blinking Red Circles) */}
-            {violations.map((violation) => (
-              <Circle
-                key={violation.id}
-                center={[violation.latitude, violation.longitude]}
-                radius={20}
-                pathOptions={{
-                  color: "#ef4444",
-                  fillColor: "#ef4444",
-                  fillOpacity: 0.5,
-                  weight: 1.5,
-                }}
-              >
-                <Popup>
-                  <div className="p-2 flex flex-col gap-1.5 min-w-[180px]">
-                    <div className="flex items-center gap-1.5 font-bold text-red-400 text-xs">
-                      <ShieldAlert size={14} />
-                      <span>ILLEGAL PARKING</span>
-                    </div>
-                    <span className="text-sm font-extrabold uppercase text-slate-100">{violation.license_plate}</span>
-                    <span className="text-[10px] text-slate-400 capitalize">Vehicle: {violation.vehicle_type}</span>
-                    <span className="text-[10px] text-slate-400">Start: {new Date(violation.detection_start).toLocaleTimeString()}</span>
-                    <img 
-                      src={violation.image_url} 
-                      alt="violation proof" 
-                      className="w-full h-16 object-cover rounded-md mt-1.5 border border-slate-800" 
-                    />
-                  </div>
-                </Popup>
-              </Circle>
-            ))}
           </MapContainer>
         </div>
 
@@ -228,7 +246,7 @@ const MapView: React.FC<MapViewProps> = ({ wsViolations }) => {
         <div className="glass-panel rounded-2xl border border-slate-800 p-5 flex flex-col gap-4 h-full overflow-hidden">
           <h2 className="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-850 pb-3">
             <Video size={18} className="text-blue-400" />
-            Live Video Analyzer
+            Heatmap Analytics
           </h2>
 
           {selectedVideo ? (
@@ -264,7 +282,71 @@ const MapView: React.FC<MapViewProps> = ({ wsViolations }) => {
               <div className="p-4 rounded-full bg-slate-900 border border-slate-800 mb-3 text-slate-400">
                 <AlertCircle size={24} />
               </div>
-              <p className="text-sm font-semibold text-slate-400">No stream selected</p>
+              <div className="space-y-6">
+
+              <div>
+                <p className="text-slate-400 text-sm">
+                  30-Day Violations
+                </p>
+
+                <h2 className="text-4xl font-bold text-red-400">
+                  26,699
+                </h2>
+              </div>
+
+              <div>
+                <p className="text-slate-400 text-sm">
+                  Hotspot Clusters
+                </p>
+
+                <h2 className="text-3xl font-bold text-yellow-400">
+                  288
+                </h2>
+              </div>
+
+              <div>
+                <p className="text-slate-400 text-sm">
+                  Critical Zones
+                </p>
+
+                <h2 className="text-3xl font-bold text-pink-400">
+                  6
+                </h2>
+              </div>
+
+              <div>
+                <p className="text-slate-400 text-sm">
+                  Coverage Period
+                </p>
+
+                <div className="border-t border-slate-800 pt-4">
+                  <h3 className="text-white font-semibold mb-3">
+                    Top Hotspots
+                  </h3>
+
+                  <div className="space-y-3">
+                    {topHotspots.map((spot,index)=>(
+                      <div
+                        key={index}
+                        className="flex justify-between items-start gap-2"
+                      >
+                        <span className="text-slate-300 text-xs flex-1 pr-2">
+                          {spot.name}
+                        </span>
+
+                        <span className="text-red-400 font-bold">
+                          {spot.weight}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <h2 className="text-xl font-bold text-green-400">
+                  Last 30 Days
+                </h2>
+              </div>
+
+            </div>
               <p className="text-xs text-slate-500 mt-1 max-w-xs">Click on any camera pin on the geographic map and tap "Open Camera Feed" to stream AI detection analysis.</p>
             </div>
           )}

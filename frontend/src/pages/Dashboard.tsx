@@ -138,9 +138,9 @@ const avgSpeed = dashboardStats.avg_speed;
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className="glass-panel p-5 rounded-2xl border border-slate-800 flex items-center justify-between">
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Violations</span>
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">30-Day Active Violations</span>
             <span className="text-3xl font-extrabold text-red-500">{activeCount}</span>
-            <span className="text-[10px] text-slate-500">Currently choking carriageways</span>
+            <span className="text-[10px] text-slate-500">Recent illegal parking incidents</span>
           </div>
           <div className="p-3 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20">
             <ShieldAlert size={24} />
@@ -207,13 +207,13 @@ const avgSpeed = dashboardStats.avg_speed;
                   className="p-4 rounded-xl bg-slate-950/40 border border-slate-800/80 hover:border-slate-700/60 transition flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between"
                 >
                   <div className="flex gap-4 items-center">
-                    <img 
-                      src={
-                        violation.image_url ||
-                        "https://via.placeholder.com/150?text=Violation"
-                      } 
-                      alt="violation proof" 
-                      className="w-16 h-12 object-cover rounded-lg border border-slate-800" 
+                    <img
+                      src={violation.image_url || "/violation-placeholder.png"}
+                      alt="violation proof"
+                      className="w-16 h-12 object-cover rounded-lg border border-slate-800"
+                      onError={(e) => {
+                        e.currentTarget.src = "/violation-placeholder.png";
+                      }}
                     />
                     <div>
                       <div className="flex items-center gap-2">
