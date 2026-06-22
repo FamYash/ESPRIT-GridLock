@@ -6,7 +6,7 @@ from app.schemas.user import UserResponse
 from app.schemas.violation import ViolationResponse
 
 class EnforcementActionBase(BaseModel):
-    violation_id: UUID
+    violation_id: Optional[UUID] = None
     officer_id: UUID
     action_type: str  # warning, ticket, towing
     status: Optional[str] = "dispatched"
