@@ -7,4 +7,4 @@ router = APIRouter()
 @router.get("/predicted")
 def predicted_heatmap():
     points = generate_predicted_heatmap()
-    return points
+    return points   
