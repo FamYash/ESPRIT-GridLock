@@ -5,7 +5,7 @@ import random
 from datetime import datetime
 
 # FastAPI Endpoints
-BACKEND_URL = "http://localhost:8000/api/v1"
+BACKEND_URL = "https://esprit-gridlock.onrender.com/api/v1"
 
 class AIParkingCongestionPipeline:
     def __init__(self):

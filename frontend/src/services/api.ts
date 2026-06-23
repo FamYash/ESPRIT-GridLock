@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:8000/api/v1";
+const API_URL = "https://esprit-gridlock.onrender.com/api/v1";
 
 const api = axios.create({
   baseURL: API_URL,

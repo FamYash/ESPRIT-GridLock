@@ -35,8 +35,8 @@ const ProtectedLayout: React.FC<{ children: (wsViolations: Violation[]) => React
     if (!token) return;
 
     // Use WS protocol based on window location
-    const wsUrl = "ws://localhost:8000/api/v1/violations/ws";
-    const ws = new WebSocket(wsUrl);
+const wsUrl = "wss://esprit-gridlock.onrender.com/api/v1/violations/ws";
+const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       console.log("[WebSocket] Connection established.");
