@@ -21,15 +21,11 @@ class Settings:
 
     @property
     def DATABASE_URL(self) -> str:
-        if self.DATABASE_URL_ENV:
-            return self.DATABASE_URL_ENV
+        database_url = os.getenv("DATABASE_URL")
 
-        return (
-            f"postgresql://{self.POSTGRES_USER}:"
-            f"{self.POSTGRES_PASSWORD}@"
-            f"{self.POSTGRES_SERVER}:"
-            f"{self.POSTGRES_PORT}/"
-            f"{self.POSTGRES_DB}"
-        )
+        if database_url:
+            return database_url
+
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
 settings = Settings()
