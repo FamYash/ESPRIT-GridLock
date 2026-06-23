@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import api from "../services/api";
 import { MapContainer, TileLayer, Marker, Popup, Polygon, Circle } from "react-leaflet";
 import { Icon, DivIcon } from "leaflet";
-import { Video, ShieldAlert, AlertCircle, Camera as CameraIcon } from "lucide-react";
+import { Video, ShieldAlert, AlertCircle, Camera as CameraIcon, Layers } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 
 // Fix Leaflet Default Icon issue
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
-import HeatmapLayer from "../components/common/HeatmapLayer";
+import HeatmapLayer, { PREDICTED_GRADIENT } from "../components/common/HeatmapLayer";
 
 let DefaultIcon = new Icon({
   iconUrl: icon,
@@ -46,6 +46,8 @@ interface Violation {
   detection_start: string;
 }
 
+type HeatmapMode = "historical" | "predicted" | "both";
+
 interface MapViewProps {
   wsViolations: Violation[];
 }
@@ -55,12 +57,17 @@ const MapView: React.FC<MapViewProps> = ({ wsViolations }) => {
   const [violations, setViolations] = useState<Violation[]>([]);
   const [heatmapPoints, setHeatmapPoints] = useState<
   [number, number, number][]
+> ([]);
+const [predictedHeatmapPoints, setPredictedHeatmapPoints] = useState<
+  [number, number, number][]
 >([]);
+const [heatmapMode, setHeatmapMode] = useState<HeatmapMode>("historical");
 const [topHotspots, setTopHotspots] = useState<any[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [selectedVideoName, setSelectedVideoName] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const loadMapData = async () => {
+
+  const loadMapData = useCallback(async () => {
     try {
       const zonesRes = await api.get("/zones");
       setZones(zonesRes.data);
@@ -68,9 +75,11 @@ const [topHotspots, setTopHotspots] = useState<any[]>([]);
       const violationsRes = await api.get("/violations?status=active");
       setViolations(violationsRes.data);
 
-      const heatmapRes = await api.get(
-        "/heatmap/historical"
-      );
+      const [heatmapRes, hotspotRes, predictedRes] = await Promise.all([
+        api.get("/heatmap/historical"),
+        api.get("/heatmap/top-hotspots"),
+        api.get("/heatmap/predicted").catch(() => ({ data: [] })),
+      ]);
 
       const formattedPoints = heatmapRes.data.map((p:any) => [
         p.lat,
@@ -78,26 +87,27 @@ const [topHotspots, setTopHotspots] = useState<any[]>([]);
         p.weight
       ]);
 
-      console.log("Heatmap Points:", formattedPoints.slice(0,10));
-
       setHeatmapPoints(formattedPoints);
 
-      setTopHotspots(
-        heatmapRes.data
-          .sort((a:any,b:any)=>b.weight-a.weight)
-          .slice(0,5)
-      );
+      const formattedPredicted = (predictedRes.data || []).map((p: any) => [
+        p.lat,
+        p.lng,
+        p.weight,
+      ]);
+      setPredictedHeatmapPoints(formattedPredicted);
+
+      setTopHotspots(hotspotRes.data);
 
     } catch (e) {
       console.error("Error loading map data:", e);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadMapData();
-  }, []);
+  }, [loadMapData]);
 
   // Sync real-time violations on the map
   useEffect(() => {
@@ -163,30 +173,48 @@ const [topHotspots, setTopHotspots] = useState<any[]>([]);
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            {heatmapPoints.length > 0 && (
+            {(heatmapMode === "historical" || heatmapMode === "both") && heatmapPoints.length > 0 && (
+              <HeatmapLayer points={heatmapPoints} />
+            )}
+
+            {(heatmapMode === "predicted" || heatmapMode === "both") && predictedHeatmapPoints.length > 0 && (
               <HeatmapLayer
-                points={heatmapPoints}
+                points={predictedHeatmapPoints}
+                gradient={PREDICTED_GRADIENT}
+                radius={35}
+                blur={25}
+                minOpacity={0.35}
               />
             )}
 
             {topHotspots.slice(0, 5).map((spot, index) => (
-              <Marker
-                key={index}
-                position={[spot.lat, spot.lng]}
-              >
-                <Popup>
-                  <div>
-                    <h3 className="font-bold">
-                      {spot.name}
-                    </h3>
+  <React.Fragment key={index}>
+    <Circle
+      center={[spot.lat, spot.lng]}
+      radius={150}
+      pathOptions={{
+        color: "#ef4444",
+        fillColor: "#ef4444",
+        fillOpacity: 0.15,
+        weight: 2,
+      }}
+    />
 
-                    <p>
-                      Violations: {spot.weight}
-                    </p>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+    <Marker position={[spot.lat, spot.lng]}>
+      <Popup>
+        <div>
+          <h3 className="font-bold">
+            {spot.name}
+          </h3>
+
+          <p>
+            Violations: {spot.weight}
+          </p>
+        </div>
+      </Popup>
+    </Marker>
+  </React.Fragment>
+))}
 
             {/* Render Geofenced Risk Zones */}
             {/* {zones.map((zone) => (
@@ -249,6 +277,39 @@ const [topHotspots, setTopHotspots] = useState<any[]>([]);
             Heatmap Analytics
           </h2>
 
+          {/* Heatmap Layer Toggle */}
+          <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
+            {(["historical", "predicted", "both"] as HeatmapMode[]).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setHeatmapMode(mode)}
+                className={`flex-1 text-xs font-bold py-1.5 px-2 rounded-md capitalize transition cursor-pointer ${
+                  heatmapMode === mode
+                    ? "bg-blue-600 text-white shadow"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                {mode === "both" ? "Both" : mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center gap-4 text-[11px] text-slate-400">
+            {heatmapMode !== "predicted" && (
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded-sm" style={{ background: "linear-gradient(90deg, #3b82f6, #22c55e, #eab308, #f97316, #ef4444)" }}></span>
+                Historical
+              </span>
+            )}
+            {heatmapMode !== "historical" && (
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded-sm" style={{ background: "linear-gradient(90deg, #1e1b4b, #7c3aed, #a855f7, #d946ef, #fdf4ff)" }}></span>
+                24h Predicted
+              </span>
+            )}
+          </div>
+
           {selectedVideo ? (
             <div className="flex flex-col gap-4 h-[calc(100%-3rem)] overflow-y-auto">
               <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-slate-800">
@@ -278,76 +339,88 @@ const [topHotspots, setTopHotspots] = useState<any[]>([]);
               </button>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-slate-500">
-              <div className="p-4 rounded-full bg-slate-900 border border-slate-800 mb-3 text-slate-400">
-                <AlertCircle size={24} />
-              </div>
-              <div className="space-y-6">
+            <div className="flex-1 flex flex-col items-center text-center p-4 text-slate-500 overflow-y-auto">
+              <div className="space-y-5 w-full">
 
+              {/* Stats - always visible */}
               <div>
-                <p className="text-slate-400 text-sm">
-                  30-Day Violations
-                </p>
-
-                <h2 className="text-4xl font-bold text-red-400">
-                  26,699
-                </h2>
+                <p className="text-slate-400 text-xs">30-Day Violations</p>
+                <h2 className="text-3xl font-bold text-red-400">26,699</h2>
               </div>
 
               <div>
-                <p className="text-slate-400 text-sm">
-                  Hotspot Clusters
-                </p>
-
-                <h2 className="text-3xl font-bold text-yellow-400">
-                  288
-                </h2>
+                <p className="text-slate-400 text-xs">Hotspot Clusters</p>
+                <h2 className="text-2xl font-bold text-yellow-400">288</h2>
               </div>
 
               <div>
-                <p className="text-slate-400 text-sm">
-                  Critical Zones
-                </p>
-
-                <h2 className="text-3xl font-bold text-pink-400">
-                  6
-                </h2>
+                <p className="text-slate-400 text-xs">Critical Zones</p>
+                <h2 className="text-2xl font-bold text-pink-400">6</h2>
               </div>
 
-              <div>
-                <p className="text-slate-400 text-sm">
-                  Coverage Period
-                </p>
-
+              {/* Predicted hotspots summary */}
+              {heatmapMode !== "historical" && predictedHeatmapPoints.length > 0 && (
                 <div className="border-t border-slate-800 pt-4">
-                  <h3 className="text-white font-semibold mb-3">
-                    Top Hotspots
+                  <h3 className="text-white font-semibold text-sm mb-3 flex items-center gap-1.5">
+                    <Layers size={14} className="text-purple-400" />
+                    24h Predicted Hotspots
                   </h3>
 
-                  <div className="space-y-3">
-                    {topHotspots.map((spot,index)=>(
-                      <div
-                        key={index}
-                        className="flex justify-between items-start gap-2"
-                      >
-                        <span className="text-slate-300 text-xs flex-1 pr-2">
-                          {spot.name}
-                        </span>
-
-                        <span className="text-red-400 font-bold">
-                          {spot.weight}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {[...predictedHeatmapPoints]
+                      .sort((a, b) => b[2] - a[2])
+                      .slice(0, 5)
+                      .map((p, i) => (
+                        <div key={i} className="flex justify-between items-center gap-2">
+                          <span className="text-slate-300 text-[11px] flex-1 truncate text-left">
+                            {p[0].toFixed(4)}, {p[1].toFixed(4)}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{
+                                opacity: 0.3 + (p[2] / 100) * 0.7,
+                                background: "#a855f7",
+                              }}
+                            ></div>
+                            <span className="text-purple-300 font-bold text-xs">
+                              {p[2].toFixed(1)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 </div>
-                <h2 className="text-xl font-bold text-green-400">
-                  Last 30 Days
-                </h2>
+              )}
+
+              <div className="border-t border-slate-800 pt-4">
+                <h3 className="text-white font-semibold text-sm mb-3">
+                  Top Hotspots
+                </h3>
+
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {topHotspots.map((spot,index)=>(
+                    <div
+                      key={index}
+                      className="flex justify-between items-start gap-2"
+                    >
+                      <span className="text-slate-300 text-xs flex-1 pr-2 text-left">
+                        {spot.name}
+                      </span>
+
+                      <span className="text-red-400 font-bold text-xs">
+                        {spot.weight}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
+              <p className="text-xs text-slate-600">
+                {heatmapMode === "historical" ? "Historical data: Last 30 Days" : heatmapMode === "predicted" ? "AI prediction: Next 24 Hours" : "Historical + 24h Prediction overlay"}
+              </p>
+
             </div>
-              <p className="text-xs text-slate-500 mt-1 max-w-xs">Click on any camera pin on the geographic map and tap "Open Camera Feed" to stream AI detection analysis.</p>
             </div>
           )}
         </div>

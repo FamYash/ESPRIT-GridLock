@@ -13,6 +13,7 @@ import app.api.enforcement as enforcement
 import app.api.dashboard as dashboard
 import app.api.config as config
 import app.api.heatmap as heatmap
+import app.api.predicted_heatmap as predicted_heatmap
 
 # Models
 from app.models.user import User
@@ -76,6 +77,12 @@ app.include_router(
     heatmap.router,
     prefix=f"{settings.API_V1_STR}/heatmap",
     tags=["heatmap"]
+)
+
+app.include_router(
+    predicted_heatmap.router,
+    prefix=f"{settings.API_V1_STR}/heatmap",
+    tags=["predicted_heatmap"]
 )
 
 app.include_router(
